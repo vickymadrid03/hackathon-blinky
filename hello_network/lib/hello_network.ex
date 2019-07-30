@@ -11,16 +11,18 @@ defmodule HelloNetwork do
   @interface Application.get_env(:hello_network, :interface, :eth0)
 
   # Durations are in milliseconds
-  @on_duration 200
-  @off_duration 200
+  @on_duration 100
+  @off_duration 1000
+  @time_between_blinks 100
 
   @doc "Main entry point into the program. This is an OTP callback."
   def start(_type, _args) do
     GenServer.start_link(__MODULE__, to_string(@interface), name: __MODULE__)
 
+    blinks = 3
     led_list = Application.get_env(:blinky, :led_list)
     Logger.debug("list of leds to blink is #{inspect(led_list)}")
-    spawn(fn -> blink_list_forever(led_list) end)
+    spawn(fn -> blink_list_forever(led_list, blinks) end)
     {:ok, self()}
   end
 
@@ -70,17 +72,23 @@ defmodule HelloNetwork do
   def handle_call(:ip_addr, _from, state), do: {:reply, state.ip_address, state}
 
   # call blink_led on each led in the list sequence, repeating forever
-  defp blink_list_forever(led_list) do
-    Enum.each(led_list, &blink(&1))
-    blink_list_forever(led_list)
+  defp blink_list_forever(led_list, blinks) do
+    Enum.each(led_list, &blink(&1, blinks))
+    blink_list_forever(led_list, blinks)
   end
 
   # given an led key, turn it on for @on_duration then back off
-  defp blink(led_key) do
-    # Logger.debug "blinking led #{inspect led_key}"
-    Leds.set([{led_key, true}])
-    :timer.sleep(@on_duration)
-    Leds.set([{led_key, false}])
+  defp blink(led_key, blinks) do
+    (1..blinks) |> Enum.each(fn _ ->
+      Logger.debug "blinking led #{inspect led_key}"
+      Leds.set([{led_key, true}])
+      Logger.debug("on")
+      :timer.sleep(@on_duration)
+      Leds.set([{led_key, false}])
+      Logger.debug("off")
+      :timer.sleep(@time_between_blinks)
+    end)
+    Logger.debug("-----")
     :timer.sleep(@off_duration)
   end
 end
