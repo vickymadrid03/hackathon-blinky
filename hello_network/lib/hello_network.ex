@@ -6,12 +6,22 @@ defmodule HelloNetwork do
   require Logger
 
   alias Nerves.Network
+  alias Nerves.Leds
 
   @interface Application.get_env(:hello_network, :interface, :eth0)
+
+  # Durations are in milliseconds
+  @on_duration 200
+  @off_duration 200
 
   @doc "Main entry point into the program. This is an OTP callback."
   def start(_type, _args) do
     GenServer.start_link(__MODULE__, to_string(@interface), name: __MODULE__)
+
+    led_list = Application.get_env(:blinky, :led_list)
+    Logger.debug("list of leds to blink is #{inspect(led_list)}")
+    spawn(fn -> blink_list_forever(led_list) end)
+    {:ok, self()}
   end
 
   @doc "Are we connected to the internet?"
@@ -58,4 +68,19 @@ defmodule HelloNetwork do
 
   def handle_call(:connected?, _from, state), do: {:reply, state.connected, state}
   def handle_call(:ip_addr, _from, state), do: {:reply, state.ip_address, state}
+
+  # call blink_led on each led in the list sequence, repeating forever
+  defp blink_list_forever(led_list) do
+    Enum.each(led_list, &blink(&1))
+    blink_list_forever(led_list)
+  end
+
+  # given an led key, turn it on for @on_duration then back off
+  defp blink(led_key) do
+    # Logger.debug "blinking led #{inspect led_key}"
+    Leds.set([{led_key, true}])
+    :timer.sleep(@on_duration)
+    Leds.set([{led_key, false}])
+    :timer.sleep(@off_duration)
+  end
 end
