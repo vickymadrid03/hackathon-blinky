@@ -21,16 +21,16 @@ config :nerves_init_gadget,
   mdns_domain: "hello_network.local",
   node_name: node_name,
   node_host: :mdns_domain,
-  ifname: "usb0",
-  address_method: :dhcpd
+  # ifname: "usb0",
+  # address_method: :dhcpd
 
   # To use wired Ethernet:
   # ifname: "eth0",
   # address_method: :dhcp
 
   # To use WiFi:
-  # ifname: "wlan0",
-  # address_method: :dhcp
+  ifname: "wlan0",
+  address_method: :dhcp
 
 # Configure wireless settings
 
@@ -38,8 +38,8 @@ key_mgmt = System.get_env("NERVES_NETWORK_KEY_MGMT") || "WPA-PSK"
 
 config :nerves_network, :default,
   wlan0: [
-    ssid: System.get_env("NERVES_NETWORK_SSID"),
-    psk: System.get_env("NERVES_NETWORK_PSK"),
+    ssid: "TRR-Hackathon",#System.get_env("NERVES_NETWORK_SSID"),
+    psk: "Hackathon19",#System.get_env("NERVES_NETWORK_PSK"),
     key_mgmt: String.to_atom(key_mgmt)
   ]
 
