@@ -14,7 +14,7 @@ defmodule HelloNetwork do
   @on_duration 100
   @off_duration 1000
   @time_between_blinks 100
-  @poll_interval 10000
+  @poll_interval 3000
 
   @endpoint "https://ampeigonet.github.io/lights-endpoint/app/views/status/status.json"
 
@@ -24,25 +24,19 @@ defmodule HelloNetwork do
 
     :timer.sleep(40000)
 
-    poll(nil, 0)
+    poll()
 
     {:ok, self()}
   end
 
-  def poll(previous_pid, previous_blinks) do
+  def poll() do
     :timer.sleep(@poll_interval)
     blinks = get_status()
 
-    if previous_blinks != blinks do
-      if previous_pid != nil do
-        Process.exit(previous_pid, :kill)
-      end
+    led_list = [:green]
+    Enum.each(led_list, &blink(&1, blinks))
 
-      pid = spawn_and_blink(blinks)
-      poll(pid, blinks)
-    else
-      poll(previous_pid, blinks)
-    end
+    poll()
   end
 
   @doc "Are we connected to the internet?"
@@ -91,9 +85,11 @@ defmodule HelloNetwork do
   def handle_call(:ip_addr, _from, state), do: {:reply, state.ip_address, state}
 
   def get_status do
+    endpoint = @endpoint <> "?#{:rand.uniform(10000)}"
+
     HTTPoison.start
     response = HTTPoison.get!(
-      @endpoint,
+      endpoint,
       [],
       [ssl: [{:verify, :verify_none}]]
     )
@@ -106,18 +102,6 @@ defmodule HelloNetwork do
     # blinks = 3
 
     blinks
-  end
-
-  def spawn_and_blink(blinks) do
-    led_list = [:green]
-
-    spawn(fn -> blink_list_forever(led_list, blinks) end)
-  end
-
-  # call blink_led on each led in the list sequence, repeating forever
-  defp blink_list_forever(led_list, blinks) do
-    Enum.each(led_list, &blink(&1, blinks))
-    blink_list_forever(led_list, blinks)
   end
 
   # given an led key, turn it on for @on_duration then back off
