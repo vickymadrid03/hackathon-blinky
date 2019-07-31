@@ -94,7 +94,6 @@ config :nerves_init_gadget,
   node_name: node_name,
   node_host: :mdns_domain
 
-config :blinky, led_list: [:green]
 config :nerves_leds, names: [green: "led0"]
 
 # Import target specific config. This must remain at the bottom
