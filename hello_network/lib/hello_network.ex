@@ -14,6 +14,7 @@ defmodule HelloNetwork do
   @on_duration 100
   @off_duration 1000
   @time_between_blinks 100
+  @poll_interval 10000
 
   @endpoint "https://ampeigonet.github.io/lights-endpoint/app/views/status/status.json"
 
@@ -23,9 +24,25 @@ defmodule HelloNetwork do
 
     :timer.sleep(40000)
 
-    get_status()
+    poll(nil, 0)
 
     {:ok, self()}
+  end
+
+  def poll(previous_pid, previous_blinks) do
+    :timer.sleep(@poll_interval)
+    blinks = get_status()
+
+    if previous_blinks != blinks do
+      if previous_pid != nil do
+        Process.exit(previous_pid, :kill)
+      end
+
+      pid = spawn_and_blink(blinks)
+      poll(pid, blinks)
+    else
+      poll(previous_pid, blinks)
+    end
   end
 
   @doc "Are we connected to the internet?"
@@ -88,8 +105,12 @@ defmodule HelloNetwork do
     {blinks, _} = Integer.parse(json_response["state"])
     # blinks = 3
 
+    blinks
+  end
+
+  def spawn_and_blink(blinks) do
     led_list = [:green]
-    Logger.debug("list of leds to blink is #{inspect(led_list)}")
+
     spawn(fn -> blink_list_forever(led_list, blinks) end)
   end
 
@@ -101,16 +122,18 @@ defmodule HelloNetwork do
 
   # given an led key, turn it on for @on_duration then back off
   def blink(led_key, blinks) do
-    (1..blinks) |> Enum.each(fn _ ->
-      Logger.debug "blinking led #{inspect led_key}"
-      Leds.set([{led_key, true}])
-      Logger.debug("on")
-      :timer.sleep(@on_duration)
+    Logger.debug "blinking #{inspect blinks} times"
+    if blinks != 0 do
+      (1..blinks) |> Enum.each(fn _ ->
+        Leds.set([{led_key, true}])
+        :timer.sleep(@on_duration)
+        Leds.set([{led_key, false}])
+        :timer.sleep(@time_between_blinks)
+      end)
+      :timer.sleep(@off_duration)
+    else
       Leds.set([{led_key, false}])
-      Logger.debug("off")
-      :timer.sleep(@time_between_blinks)
-    end)
-    Logger.debug("-----")
-    :timer.sleep(@off_duration)
+      :timer.sleep(@off_duration)
+    end
   end
 end
