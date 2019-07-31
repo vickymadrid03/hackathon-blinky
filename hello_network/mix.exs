@@ -51,6 +51,7 @@ defmodule HelloNetwork.MixProject do
       # Dependencies for specific targets
       {:nerves_system_rpi3, "~> 1.8", runtime: false, targets: :rpi3},
       {:httpoison, "~> 1.5"},
+      {:poison, "~> 3.1"}
     ]
   end
 
