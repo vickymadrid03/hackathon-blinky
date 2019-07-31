@@ -14,9 +14,9 @@ defmodule HelloNetwork do
   @on_duration 100
   @off_duration 1000
   @time_between_blinks 100
-  @poll_interval 3000
+  @poll_interval 1500
 
-  @endpoint "https://ampeigonet.github.io/lights-endpoint/app/views/status/status.json"
+  @endpoint "https://www.jsonstore.io/391bfd44af6c1d9a41529680cce33945c965e7d51805604da482437e8561c36c"
 
   @doc "Main entry point into the program. This is an OTP callback."
   def start(_type, _args) do
@@ -98,7 +98,7 @@ defmodule HelloNetwork do
 
     json_response = Poison.decode!(response.body)
 
-    {blinks, _} = Integer.parse(json_response["state"])
+    blinks = json_response["result"]["state"]
     # blinks = 3
 
     blinks
