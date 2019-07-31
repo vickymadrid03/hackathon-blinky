@@ -15,14 +15,16 @@ defmodule HelloNetwork do
   @off_duration 1000
   @time_between_blinks 100
 
+  @endpoint "https://ampeigonet.github.io/lights-endpoint/app/views/status/status.json"
+
   @doc "Main entry point into the program. This is an OTP callback."
   def start(_type, _args) do
     GenServer.start_link(__MODULE__, to_string(@interface), name: __MODULE__)
 
-    blinks = 3
-    led_list = Application.get_env(:blinky, :led_list)
-    Logger.debug("list of leds to blink is #{inspect(led_list)}")
-    spawn(fn -> blink_list_forever(led_list, blinks) end)
+    :timer.sleep(40000)
+
+    get_status()
+
     {:ok, self()}
   end
 
@@ -71,6 +73,26 @@ defmodule HelloNetwork do
   def handle_call(:connected?, _from, state), do: {:reply, state.connected, state}
   def handle_call(:ip_addr, _from, state), do: {:reply, state.ip_address, state}
 
+  def get_status do
+    HTTPoison.start
+    response = HTTPoison.get!(
+      @endpoint,
+      [],
+      [ssl: [{:verify, :verify_none}]]
+    )
+
+    Logger.debug("Response body: #{inspect(response.body)}")
+
+    json_response = Poison.decode!(response.body)
+
+    {blinks, _} = Integer.parse(json_response["state"])
+    # blinks = 3
+
+    led_list = [:green]
+    Logger.debug("list of leds to blink is #{inspect(led_list)}")
+    spawn(fn -> blink_list_forever(led_list, blinks) end)
+  end
+
   # call blink_led on each led in the list sequence, repeating forever
   defp blink_list_forever(led_list, blinks) do
     Enum.each(led_list, &blink(&1, blinks))
@@ -78,7 +100,7 @@ defmodule HelloNetwork do
   end
 
   # given an led key, turn it on for @on_duration then back off
-  defp blink(led_key, blinks) do
+  def blink(led_key, blinks) do
     (1..blinks) |> Enum.each(fn _ ->
       Logger.debug "blinking led #{inspect led_key}"
       Leds.set([{led_key, true}])
